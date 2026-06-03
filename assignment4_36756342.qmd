@@ -6,6 +6,10 @@ format: html
 editor: visual
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE) 
+```
+
 ::: panel-tabset
 <!-- Task 1 Tab: Data and Documenting -->
 
@@ -23,17 +27,7 @@ Understanding the key risk factors that contribute to road accidents is essentia
 
 The datasets used in this analysis consist of two sources. The first is the Victoria Road Crash dataset which provides information about road accidents in Victoria including location, time, characteristics of individuals involved, and external factors such as speed zone and light condition. The second is the 2021 Australian Census dataset filtered to Victoria, which will be used to contextualise findings from the road crash data by providing population-level characteristics such as sex and age distribution across Victoria.
 
-#### Dataset 1: Victoria Road Crash Data
-
--   **Detail**: The dataset consists of multiple tables which can be joined together using a variable named accident_no, which serves as a unique identifier across all tables.
--   **Source**: Victoria Government Data Portal
--   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
--   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
--   **Last updated date**: 9 August 2025
--   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. Additionally, certain variables may not accurately reflect the circumstances of each accident — for example, light condition is recorded on a categorical scale which may be subjective depending on the perception of the person recording it.
--   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
-
-#### Dataset 2: 2021 Victoria Census Data
+#### Dataset 1: 2021 Victoria Census Data
 
 -   **Detail**: The tables that will be used in this analysis will included data about population age and gender at state level and also LGA level.
 -   **Source**: Australian Bureau pf Statistics
@@ -43,19 +37,217 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 -   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind.
 -   **Ethical considerations**: As census data contains information about individuals, re-identification risk must be considered. However, as the data will only be used at an aggregated population level for comparison purposes, this risk is relatively low in this analysis. Moreover, using demographic characteristics such as age and sex to inform insurance premium pricing may raise concerns around fairness and discrimination, and findings should therefore be interpreted and presented with this in mind.
 
-### Steps to download the data
+#### Dataset 2: Victoria Road Crash Data
+
+-   **Detail**: The dataset consists of multiple tables which can be joined together using a variable named accident_no, which serves as a unique identifier across all tables.
+-   **Source**: Victoria Government Data Portal
+-   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
+-   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
+-   **Last updated date**: 9 August 2025
+-   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. Additionally, certain variables may not accurately reflect the circumstances of each accident — for example, light condition is recorded on a categorical scale which may be subjective depending on the perception of the person recording it.
+-   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
+
+Another limitation arises when comparing both datasets as the age bands do not exactly align. For example, the census data uses an age band of 25-34 years while the road accident dataset splits this into 26-29 and 30-39 years. To address this, proportional allocation was applied by assuming that ages are uniformly distributed within each band, allowing the population count to be approximated for partial age ranges. This assumption introduces some estimation error as the actual age distribution within each band may not be perfectly uniform.
+
+### Steps to download and process the data
+
+#### Dataset 1: 2021 Victoria Census Data
+The dataset was downloaded from abs.gov.au website and saved in the data folder.
+The data was loaded and cleaned using the following codes;
+
+```{r}
+census_data_vic <- read_csv("data/2021Census_G01_VIC_STE.csv")
+```
+
+```{r}
+# As the census data was stored in wide format, pivot_longer was used to transform it into long format where each row represents a single category and its count.
+census_data_vic_tidy <- census_data_vic |>
+  pivot_longer(cols = -1, names_to = 'category',
+               values_to = 'count')
+```
+
+```{r}
+# Filter to retain only rows related to age and sex of the population.
+census_data_vic_tidy <- census_data_vic_tidy |> 
+  filter(str_detect(category, 'Age')) |> 
+  filter(!str_detect(category, 'Age_psns'))
+```
+
+```{r}
+# Replace '85ov' with '85_110_yr' to ensure consistent formatting with other age category labels.
+census_data_vic_tidy <- census_data_vic_tidy |> 
+  mutate(
+    category = str_replace(category, '85ov', '85_110_yr')
+  )
+```
+
+```{r}
+# Remove 'yr' and 'Age' from category labels as they are redundant and do not add meaningful information, which will also make it easier to separate the values into different columns in the next step.
+census_data_vic_tidy <- census_data_vic_tidy |> 
+  mutate(category = str_remove(category, '_yr'))
+
+census_data_vic_tidy <- census_data_vic_tidy |> 
+  mutate(category = str_remove(category, 'Age_'))
+```
+
+```{r}
+# Separate the category column into three columns representing minimum age, maximum age, and sex using '_' as the delimiter.
+census_data_vic_tidy <- census_data_vic_tidy |>
+  separate_wider_delim(cols = category, delim = "_",
+                       names = c('min_age', 'max_age', 'sex'))
+```
+
+```{r}
+census_data_vic_tidy <- census_data_vic_tidy |>
+  select(min_age, max_age, sex, count)
+```
+
+```{r}
+# Convert min_age and max_age columns to numeric variables.
+census_data_vic_tidy <- census_data_vic_tidy |>
+  mutate(min_age = as.numeric(min_age),
+         max_age = as.numeric(max_age),
+         sex = factor(sex, levels = c('M', 'F','P')))
+```
+
+```{r}
+write_csv(census_data_vic_tidy, "cleaned_data/census_data_vic_tidy.csv")
+```
+
+#### Dataset 2: Victoria Road Crash Data
+The dataset was downloaded from data.gov.au website and saved in the data folder.
+The data was loaded and cleaned using the following codes;
+
+```{r}
+library(tidyverse)
+library(lubridate)
+
+# Load the dataset
+accident_data <- read_csv("data/accident.csv")
+person_data <- read_csv("data/person.csv")
+location_data <- read_csv("data/node.csv")
+```
+
+```{r}
+# In the person table, filter 'road_user_type_desc' to 'Drivers'. 
+# Keep only accident_no, sex, and age_group columns.
+
+person_data <- person_data |> 
+  filter(ROAD_USER_TYPE_DESC == 'Drivers') |> 
+  select(ACCIDENT_NO, SEX, AGE_GROUP)
+```
+
+```{r}
+# In the location table, only accident_no, LGA_name, and deg_urban_name columns are kept.
+
+location_data <- location_data |> 
+  select(ACCIDENT_NO, LGA_NAME, DEG_URBAN_NAME)
+```
+
+```{r}
+# In the accident table, only accident_no, accident_date, light_condition, and speed_zone are kept.
+
+accident_data <- accident_data |> 
+  select(ACCIDENT_NO, ACCIDENT_DATE, LIGHT_CONDITION, SPEED_ZONE)
+```
+
+```{r}
+# Join the 3 tables together using accident_no as a common column.
+# Before joining the tables, the validity of the primary key which is the column used to join the tables is tested to ensure there are no duplicate values.
+
+accident_data |> 
+  count(ACCIDENT_NO) |> 
+  filter (n > 1)
+```
+
+```{r}
+# For the person_data table, it is expected that some accidents may involve multiple vehicles, therefore the same accident_no may appear more than once to account for multiple drivers.
+
+person_data |> 
+  count(ACCIDENT_NO) |> 
+  filter (n > 1)
+```
+
+```{r}
+# For the location_data table, it is not expected to have repeated rows as one accident can only occur at one location, however there were multiple duplicated rows. 
+
+location_data |> 
+  count(ACCIDENT_NO) |> 
+  filter (n > 1)
+
+# Upon further inspection, the difference was due to inconsistent recording of deg_urban_name, but the actual locations and LGA names are the same, therefore duplicated rows were removed before joining.
+
+location_data <- location_data |>
+  distinct(ACCIDENT_NO, .keep_all = TRUE)
+```
+
+```{r}
+# Joining accident_data table with person_data table using right_join to preserve all rows in person_data table.
+
+joined_data <- accident_data |> 
+  right_join(person_data, by = 'ACCIDENT_NO')
+
+# Joining the joined_data table with location_data table using left_join to preserve all rows in the joined_data table.
+joined_data <- joined_data |> 
+  left_join(location_data, by = 'ACCIDENT_NO')
+```
+
+```{r}
+# There are rows with missing LGA names, however as the number of rows with missing LGA names is insignificant, these rows will be removed.
+joined_data |> 
+   filter(is.na(LGA_NAME))
+```
+
+```{r}
+# Removed rows where sex is undefined or recorded as U. 
+# Removed rows where age group is recorded as Unknown. 
+# Removed rows where LGA name is missing.
+
+joined_data <- joined_data |>
+  filter(SEX != 'U') |> 
+  filter(AGE_GROUP != 'Unknown') |> 
+  filter(!is.na(LGA_NAME))
+```
+
+```{r}
+# Accident_date is further aggregated to reduce re-identification risk by extracting only the year and month in which the accident occurred.
+joined_data <- joined_data |> 
+  mutate(ACCIDENT_MONTH = month(ymd(ACCIDENT_DATE), label = TRUE),
+         ACCIDENT_YEAR = year(ymd(ACCIDENT_DATE))) |> 
+  select(-ACCIDENT_DATE)
+```
+
+```{r}
+# Convert the age_group column to a factor and recode the age bands into broader groups to align with the census data age bands for comparison.
+joined_data <- joined_data |>
+  mutate(AGE_GROUP = case_when(
+    AGE_GROUP %in% c('0-4', '5-12', '13-15') ~ '0-15',
+    AGE_GROUP %in% c('16-17', '18-21') ~ '16-21',
+    AGE_GROUP %in% c('22-25', '26-29') ~ '22-29',
+    AGE_GROUP %in% c('30-39', '40-49') ~ '30-49',
+    AGE_GROUP == '50-59' ~ '50-59',
+    AGE_GROUP == '60-64' ~ '60-69',
+    AGE_GROUP %in% c('65-69', '70+') ~ '70+'
+  )) |>
+  mutate(AGE_GROUP = factor(AGE_GROUP, levels = c(
+    '0-15', '16-21', '22-29', '30-49', '50-59', '60-69', '70+'
+  )))
+```
+
+```{r}
+# Convert the speed_zone column to numeric variable.
+joined_data <- joined_data |> 
+  mutate(SPEED_ZONE = as.numeric(SPEED_ZONE),
+         SEX = factor(SEX, levels = c('M', 'F')))
+```
+
+```{r}
+write_csv(joined_data, "cleaned_data/road_accident_data_tidy.csv")
+```
 
 ### Comprehensive details of the data
 
-### What's in this section
-
-Here is where you should provide the more comprehensive details about your data and your processing steps.
-
-These are the data details that an "average" blog post reader is not concerned with (Task 1).
-
-### Remember
-
-Please mention any additional files that you want the markers to review, eg. read me, meta data etc.
+The comprehensive details of both datasets are presented in their respective README and data dictionary files.
 
 <!-- Task 2 Tab: Writing your blogpost -->
 
