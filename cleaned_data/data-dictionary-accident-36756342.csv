@@ -1,0 +1,27 @@
+Variable,Description,Type,Other information
+accident_no,Unique identifier for each accident event.,Character,Serves as the primary key used to join tables together.
+light_condition,Light condition at the time of the accident.,Factor,"Represents the light condition at the time and location of the accident. The categories are: 
+- 1 (Day) 
+- 2 (Dusk/dawn)
+- 3 (Dark street lights on) 
+- 4 (Dark street lights off)
+- 5 (Dark no street lights)
+- 6 (Dark street lights unknown)
+- 9 (Unknown)"
+speed_zone,Speed limit of the location where the accident occurred.,Numeric,Represents the speed limit at the location of the accident. The unit is km/h.
+sex,Sex of the drivers involved in the accidents.,Factor,"Represents the sex of the drivers. The categories are:
+- M (Male)
+- F (Female)"
+age_group,Age group of the drivers involved in the accidents.,Factor,"Represents the recoded age groups of the drivers. The categories are:
+- 0-15 
+- 16-21 
+- 22-29 
+- 30-49 
+- 50-59 
+- 60-69 
+- 70+
+The unit is years.
+"
+lga_name,Name of the local government area where the accident occurred.,Character,Represents the LGA where the accident occurred.
+accident_month,Month in which the accident occurred.,Factor,"This variable was transformed by extracting the month information from the original variable ACCIDENT_DATE, which records the day, month, and year when the accident occurred. It is stored as a factor ranging from Jan to Dec."
+accident_year,Year in which the accident occurred.,Numeric,"This variable was transformed by extracting the year information from the original variable ACCIDENT_DATE, which records the day, month, and year when the accident occurred. It is stored as a numeric variable."
