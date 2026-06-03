@@ -1,0 +1,88 @@
+---
+title: "Understanding the Risk Factors Behind Car Accidents in Victoria"
+subtitle: "Assignment 4 ETC5512"
+author: "Thunchanok Udomittipong"
+format: html
+editor: visual
+---
+
+::: panel-tabset
+<!-- Task 1 Tab: Data and Documenting -->
+
+## Data and Documenting
+
+### Questions
+
+Understanding the key risk factors that contribute to road accidents is essential for insurance companies in determining appropriate premium pricing for drivers in Victoria. Insurers typically consider factors such as driver profiles and registered address to assess accident risk, therefore historical accident data can be used to explore and understand these factors. This analysis will address the following questions:
+
+-   How do driver characteristics such as age and sex contribute to the likelihood of accident involvement?
+-   Are certain areas in Victoria more prone to accidents than others?
+-   How do external factors such as light condition, speed zone, and time of accident contribute to the likelihood of an accident?
+
+### Data Description
+
+The datasets used in this analysis consist of two sources. The first is the Victoria Road Crash dataset which provides information about road accidents in Victoria including location, time, characteristics of individuals involved, and external factors such as speed zone and light condition. The second is the 2021 Australian Census dataset filtered to Victoria, which will be used to contextualise findings from the road crash data by providing population-level characteristics such as sex and age distribution across Victoria.
+
+#### Dataset 1: Victoria Road Crash Data
+
+-   **Detail**: The dataset consists of multiple tables which can be joined together using a variable named accident_no, which serves as a unique identifier across all tables.
+-   **Source**: Victoria Government Data Portal
+-   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
+-   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
+-   **Last updated date**: 9 August 2025
+-   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. Additionally, certain variables may not accurately reflect the circumstances of each accident — for example, light condition is recorded on a categorical scale which may be subjective depending on the perception of the person recording it.
+-   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
+
+#### Dataset 2: 2021 Victoria Census Data
+
+-   **Detail**: The tables that will be used in this analysis will included data about population age and gender at state level and also LGA level.
+-   **Source**: Australian Bureau pf Statistics
+-   **Data type**: Census. Unlike the road crash dataset which is a sample, census data aims to capture the entire population, however complete coverage is not always achievable in practice.
+-   **Data license**: Creative Commons Attribution 4.0 International. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
+-   **Last updated date**: 28 June 2022
+-   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind.
+-   **Ethical considerations**: As census data contains information about individuals, re-identification risk must be considered. However, as the data will only be used at an aggregated population level for comparison purposes, this risk is relatively low in this analysis. Moreover, using demographic characteristics such as age and sex to inform insurance premium pricing may raise concerns around fairness and discrimination, and findings should therefore be interpreted and presented with this in mind.
+
+### Steps to download the data
+
+### Comprehensive details of the data
+
+### What's in this section
+
+Here is where you should provide the more comprehensive details about your data and your processing steps.
+
+These are the data details that an "average" blog post reader is not concerned with (Task 1).
+
+### Remember
+
+Please mention any additional files that you want the markers to review, eg. read me, meta data etc.
+
+<!-- Task 2 Tab: Writing your blogpost -->
+
+## Blog post
+
+### What's in this section
+
+Here is where you should write your blogpost! (Task 2)
+
+### Blogpost Structure
+
+There is no strict structure for you to follow. However, here is a skeleton structure you may find helpful.
+
+1.  Title (is set at the top of this document)
+2.  Motivation\
+3.  Data\
+4.  Analysis\
+5.  Conclusions\
+6.  References
+
+<!-- Task 3 Tab: Behind the Scenes -  -->
+
+## Behind the Scenes
+
+### What's in this section
+
+Here is where you should tell us about your reflection on your analysis (Task 3).
+
+Again, these are the details about **your** perspective and the gritty details behind the scenes of your analysis.
+:::
