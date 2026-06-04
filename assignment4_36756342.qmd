@@ -21,13 +21,12 @@ Understanding the key risk factors that contribute to road accidents is essentia
 
 -   How do driver characteristics such as age and sex contribute to the likelihood of accident involvement?
 -   Are certain areas in Victoria more prone to accidents than others?
--   How do external factors such as light condition, speed zone, and time of accident contribute to the likelihood of an accident?
 
 ### Data Description
 
-The datasets used in this analysis consist of two sources. The first is the Victoria Road Crash dataset which provides information about road accidents in Victoria including location, time, characteristics of individuals involved, and external factors such as speed zone and light condition. The second is the 2021 Australian Census dataset filtered to Victoria, which will be used to contextualise findings from the road crash data by providing population-level characteristics such as sex and age distribution across Victoria.
+The datasets used in this analysis consist of two sources. The first is the Victoria Road Crash dataset which provides information about road accidents in Victoria including location and characteristics of individuals involved. The second is the 2021 Australian Census dataset filtered to Victoria, which will be used to contextualise findings from the road crash data by providing population-level characteristics such as sex and age distribution across Victoria.
 
-#### Dataset 1: 2021 Victoria Census Data
+#### Dataset 1: 2021 Victoria Census Data and GeoPackages
 
 -   **Detail**: The tables that will be used in this analysis will included data about population age and gender at state level and also LGA level.
 -   **Source**: Australian Bureau pf Statistics
@@ -40,25 +39,25 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 #### Dataset 2: Victoria Road Crash Data
 
 -   **Detail**: The dataset consists of multiple tables which can be joined together using a variable named accident_no, which serves as a unique identifier across all tables.
--   **Source**: Victoria Government Data Portal
+-   **Source**: Victoria Government Data Portal (Victoria’s Department of Transport and Planning)
 -   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
 -   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
 -   **Last updated date**: 9 August 2025
--   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. Additionally, certain variables may not accurately reflect the circumstances of each accident — for example, light condition is recorded on a categorical scale which may be subjective depending on the perception of the person recording it.
+-   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. 
 -   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
 
 Another limitation arises when comparing both datasets as the age bands do not exactly align. For example, the census data uses an age band of 25-34 years while the road accident dataset splits this into 26-29 and 30-39 years. To address this, proportional allocation was applied by assuming that ages are uniformly distributed within each band, allowing the population count to be approximated for partial age ranges. This assumption introduces some estimation error as the actual age distribution within each band may not be perfectly uniform.
 
 ### Steps to download and process the data
 
-#### Dataset 1: 2021 Victoria Census Data
-The dataset was downloaded from abs.gov.au and saved in the data folder. Two tables were used: G07 and G01. G07 provides smaller 5 year age brackets which offer more granularity, however it groups everyone aged 65 and over into a single category. G01 provides more detailed age brackets for the older population, specifically 65-74, 75-84, and 85 and over. Therefore both tables were combined to produce a more complete and detailed age breakdown across all age groups.
+The dataset was downloaded from abs.gov.au and saved in the data folder. Two tables from the census dataset were used: G07 and G01. G07 provides 5 year age brackets which offer more granularity, however it groups everyone aged 65 and over into a single category. G01 provides more detailed age brackets for the older population, specifically 65 to 74, 75 to 84, and 85 and over. Therefore both tables were combined to produce a more complete and detailed age breakdown across all age groups. The LGA boundary GeoPackage was also downloaded from the same source and will be used to visualise accident data geographically by LGA.
 The data was loaded and cleaned using the following codes;
 
 ```{r}
 library(tidyverse)
 library(lubridate)
 library(kableExtra)
+library(sf)
 
 # Load the G01 census data table.
 census_vic_G01 <- read_csv("data/2021Census_G01_VIC_STE.csv")
@@ -162,6 +161,7 @@ census_data_vic_tidy <- census_vic_G07_long |>
 ```
 
 ```{r}
+# Remove rows representing the total population count, retaining only male and female breakdown.
 census_data_vic_tidy <- census_data_vic_tidy |>
   select(min_age, max_age, sex, count) |> 
   filter(sex != 'P')
@@ -177,6 +177,25 @@ census_data_vic_tidy <- census_data_vic_tidy |>
 
 ```{r}
 write_csv(census_data_vic_tidy, "cleaned_data/census_data_vic_tidy.csv")
+```
+
+The GeoPackage data was loaded. 
+
+```{r}
+  #| output: false
+# Load the dataset
+st_layers(here::here("data/G01_VIC_GDA2020.gpkg"))
+
+vic_lga_G01 <- read_sf(here::here("data/G01_VIC_GDA2020.gpkg"),
+                         layer = "G01_LGA_2021_VIC")
+```
+
+```{r}
+# Convert LGA names to uppercase to ensure consistent formatting for joining with the accident dataset, and retain only the LGA name and geometry columns.
+
+vic_lga_G01 <-vic_lga_G01 |>
+  mutate(LGA_NAME = toupper(LGA_NAME_2021)) |> 
+  select(LGA_NAME, geom)
 ```
 
 #### Dataset 2: Victoria Road Crash Data
@@ -210,7 +229,7 @@ location_data <- location_data |>
 # In the accident table, only accident_no, accident_date, light_condition, and speed_zone are kept.
 
 accident_data <- accident_data |> 
-  select(ACCIDENT_NO, ACCIDENT_DATE, LIGHT_CONDITION, SPEED_ZONE)
+  select(ACCIDENT_NO, ACCIDENT_DATE)
 ```
 
 ```{r}
@@ -305,8 +324,7 @@ joined_data <- joined_data |>
 ```{r}
 # Convert the speed_zone column to numeric variable.
 joined_data <- joined_data |> 
-  mutate(SPEED_ZONE = as.numeric(SPEED_ZONE),
-         SEX = factor(SEX, levels = c('M', 'F')))
+  mutate(SEX = factor(SEX, levels = c('M', 'F')))
 ```
 
 ```{r}
@@ -444,45 +462,57 @@ sex_compare <- summary_accident |>
 percent_pop = round(no_pop / sum(no_pop), 2))
 ```
 
+```{r}
+#| output: false
+# Before joining the geometry data or map boundary data with the accident data, the common column which is LGA_NAME is inspected to detect any inconsistencies in naming.
+joined_data |> 
+  group_by(LGA_NAME) |> 
+  summarise(count = n()) |> 
+  full_join(vic_lga_G01, by = 'LGA_NAME', keep = TRUE) |> 
+  filter(is.na(LGA_NAME.x) | is.na(LGA_NAME.y))
+```
+
+```{r}
+# The inconsistent LGA names are updated to match the naming convention used in the GeoPackage data.
+joined_map_data <- location_data |>
+  mutate(LGA_NAME = case_when(LGA_NAME == 'BAYSIDE' ~ 'BAYSIDE (VIC.)',
+            LGA_NAME == 'BENDIGO' ~ 'GREATER BENDIGO',
+            LGA_NAME == 'DANDENONG'~ 'GREATER DANDENONG',
+            LGA_NAME == 'GEELONG' ~ 'GREATER GEELONG',
+            LGA_NAME == 'SHEPPARTON' ~ 'GREATER SHEPPARTON',
+            LGA_NAME == 'KINGSTON' ~ 'KINGSTON (VIC.)',
+            LGA_NAME == 'LATROBE' ~ 'LATROBE (VIC.)',
+            TRUE ~ LGA_NAME))
+```
+
+```{r}
+# Accident data is aggregated by LGA and joined with the geometry data for map visualisation.
+joined_map_data <- joined_map_data |> 
+  group_by(LGA_NAME) |> 
+  summarise(count = n()) |> 
+  inner_join(vic_lga_G01, by = 'LGA_NAME')
+```
+
 ### Comprehensive details of the data
 
 The comprehensive details of both datasets are presented in their respective README and data dictionary files.
-
-### References
-National Cover (2026, April 13) *5 Factors Affecting Car Insurance Premiums In Australia* retrieved May 29, 2026 from <https://nationalcover.com.au/factors-affecting-car-insurance-premiums/>
-
-Victoria’s Department of Transport and Planning (2025, August 9) *Victoria road crash data* retrieved May 29, 2026 from <https://www.data.gov.au/data/dataset/victoria-road-crash-data>
-
-Prener, C. (2022, May 30) *Areal Weighted Interpolation* retrieved June 4, 2026 from <https://cran.r-project.org/web/packages/areal/vignettes/areal-weighted-interpolation.html>
-
-Australian Bureau of Statistics. (2021). *Census DataPacks* retrieved May 29, 2026, from <https://www.abs.gov.au/census/find-census-data/datapacks>
-
-Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). *“Welcome to the tidyverse.” *Journal of Open Source Software\_, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>
-
-Garrett Grolemund, Hadley Wickham (2011). *Dates and Times Made Easy with lubridate.*
-Journal of Statistical Software, 40(3), 1-25. URL <https://www.jstatsoft.org/v40/i03/>
-
-Zhu H (2024). *kableExtra: Construct Complex Table with 'kable' and Pipe Syntax.* doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>
 
 <!-- Task 2 Tab: Writing your blogpost -->
 
 ## Blog post
 
 ### Why analyse risk factors contributed to road accidents in Victoria?
-
 Sometimes we wonder why our car insurance prices change. Most drivers have experienced variability in their premiums and may have wondered what drives them. One key factor insurers consider when determining premiums is the likelihood of accidents. Understanding the factors that contribute to accident risk, and whether any of them are within our control, makes this a personally relevant and practically useful analysis.
 
-
 ### Where does the data come from?
-
 Data used for this analysis is obtained from two sources. The first is the Victorian Road Crash dataset distributed by Victoria's Department of Transport and Planning, which combines information gathered from police reports and hospital records. The second is the 2021 Australian Census dataset obtained from the Australian Bureau of Statistics, which will be used to provide population context to support conclusions drawn from the analysis regarding personal characteristics such as age and sex. Further details of both datasets can be found in the Data Description section.
 
 ### What does the data tell us?
 #### Characteristics of the drivers: age and sex
-
 To determine whether higher accident counts from certain age groups or among one sex are simply a reflection of a larger population in those groups, the proportion of drivers involved in accidents is compared against the general Victorian population using the 2021 Australian Census data. If the proportion of drivers in accidents exceeds their share of the population, it suggests that the group is overrepresented in accidents beyond what population size alone would explain.
 
 ```{r}
+#| echo: false
 #| fig-cap: "Number of Drivers Involved in Accidents by Age Group"
 #| label: fig-driver-age
 age_compare |> 
@@ -499,6 +529,7 @@ age_compare |>
   theme(legend.position = 'none')
 ```
 ```{r}
+#| echo: false
 #| tbl-cap: "Comparison of proportion of drivers involved in accidents against the general population by age group"
 #| label: tbl-percent-age
 age_compare |> 
@@ -520,6 +551,7 @@ Additionally, two other age groups also show a higher proportion of accident inv
 Therefore, it can be concluded that drivers aged 30 to 39 have the highest risk of accident involvement, followed closely by the 22 to 29 age group.
 
 ```{r}
+#| echo: false
 #| tbl-cap: "Comparison of proportion of drivers involved in accidents against the general population by sex"
 #| label: tbl-percent-sex
 sex_compare |> 
@@ -538,23 +570,67 @@ The table shows that 59% of drivers involved in accidents are male, while males 
 
 It is also worth noting that individuals who identify as neither male nor female, or whose sex was not recorded, are not included in this analysis, which is a further limitation to consider. Overall, male drivers appear to be overrepresented in road accidents relative to their share of the Victorian population, suggesting that male drivers pose a higher accident risk and may therefore be considered a higher risk group.
 
+Additionally, accidents sometimes involve more than one vehicle or driver, and the fault may lie with only one of the drivers involved. However, as the dataset does not contain information on fault or culpability, all drivers involved in an accident are treated equally in this analysis, which is another limitation to consider when interpreting the findings.
 
+#### Which location is more prone to accidents?
 
+```{r}
+#| echo: false
+ggplot() +
+   geom_sf(data = joined_map_data,
+           aes(geometry = geom, fill = count),
+           color = "white") + 
+  labs(
+    title = 'Number of Drivers Involved in Accidents by LGA in Victoria',
+    fill = 'Number of Drivers Involved in Accidents'
+  ) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+```{r}
+#| echo: false
+joined_data |> 
+  group_by(LGA_NAME) |> 
+  summarise(count = n()) |> 
+  arrange(desc(count)) |> 
+  head(10) |> 
+  rename(
+    'LGA' = LGA_NAME,
+    'Accident Count' = count
+  ) |> 
+  kable()
+```
 
+From the map, the highest number of accident occurrences is concentrated around Melbourne and surrounding urban areas. This concentration could be attributed to higher traffic volumes in urban areas, which increases the likelihood of accidents, or other location specific factors such as road conditions and infrastructure. However, the available data does not provide enough information to determine the exact cause, which is a limitation to consider when interpreting these findings. Nevertheless, LGAs within and around Melbourne appear to be more prone to road accidents, which has direct implications for insurance premium pricing. Drivers who reside in or frequently travel through these high risk areas may represent a higher risk profile, and location could therefore be a meaningful factor for insurers when determining appropriate premiums for Victorian drivers.
 
+### Conclusions and Implications
 
-Here is where you should write your blogpost! (Task 2)
+While multiple factors contribute to the likelihood of accidents and influence insurance premium pricing, this analysis focused on three key factors: driver characteristics such as age and sex, and the location where accidents occurred.
 
-### Blogpost Structure
+From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, urban LGAs near Melbourne are more prone to accidents, with Casey recording the highest number of accidents, followed by Melbourne and Hume.
 
-There is no strict structure for you to follow. However, here is a skeleton structure you may find helpful.
+These findings suggest that younger to middle aged male drivers residing in or frequently travelling through urban areas around Melbourne represent the highest risk profile, which could be used to inform more targeted and accurate insurance premium pricing for Victorian drivers.
 
-1.  Title (is set at the top of this document)
-2.  Motivation\
-3.  Data\
-4.  Analysis\
-5.  Conclusions\
-6.  References
+### References
+National Cover (2026, April 13) *5 Factors Affecting Car Insurance Premiums In Australia* retrieved May 29, 2026 from <https://nationalcover.com.au/factors-affecting-car-insurance-premiums/>
+
+Victoria’s Department of Transport and Planning (2025, August 9) *Victoria road crash data* retrieved May 29, 2026 from <https://www.data.gov.au/data/dataset/victoria-road-crash-data>
+
+Prener, C. (2022, May 30) *Areal Weighted Interpolation* retrieved June 4, 2026 from <https://cran.r-project.org/web/packages/areal/vignettes/areal-weighted-interpolation.html>
+
+Australian Bureau of Statistics. (2021). *Census DataPacks* retrieved May 29, 2026, from <https://www.abs.gov.au/census/find-census-data/datapacks>
+
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). *“Welcome to the tidyverse.” *Journal of Open Source Software\_, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>
+
+Garrett Grolemund, Hadley Wickham (2011). *Dates and Times Made Easy with lubridate.*
+Journal of Statistical Software, 40(3), 1-25. URL <https://www.jstatsoft.org/v40/i03/>
+
+Zhu H (2024). *kableExtra: Construct Complex Table with 'kable' and Pipe Syntax.* doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>
+
+Müller K (2025). *here: A Simpler Way to Find Your Files.* doi:10.32614/CRAN.package.here <https://doi.org/10.32614/CRAN.package.here>, R package version 1.0.2, <https://CRAN.R-project.org/package=here>
+
+Pebesma, E., 2018. *Simple Features for R: Standardized Support for Spatial Vector Data.* The R Journal 10 (1), 439-446, <https://doi.org/10.32614/RJ-2018-009>
+
 
 <!-- Task 3 Tab: Behind the Scenes -  -->
 
