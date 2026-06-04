@@ -58,6 +58,7 @@ The data was loaded and cleaned using the following codes;
 ```{r}
 library(tidyverse)
 library(lubridate)
+library(kableExtra)
 
 # Load the G01 census data table.
 census_vic_G01 <- read_csv("data/2021Census_G01_VIC_STE.csv")
@@ -409,7 +410,7 @@ census_data_vic_tidy |>
 ```
 
 ```{r}
-# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by age group.
+# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by age group. The 0-15 age group is excluded as the legal driving age in Victoria is 16 years old.
 age_compare <- summary_accident |> 
   group_by(age_group) |> 
   summarise(no_driver = sum(count)) |> 
@@ -419,13 +420,18 @@ age_compare <- summary_accident |>
       summarise(no_pop = sum(count)),
     by = 'age_group'
   ) |> 
+  filter(age_group != '0-15') |> 
   mutate(percent_driver = round(no_driver / sum(no_driver), 2),
-percent_pop = round(no_pop / sum(no_pop), 2))
+percent_pop = round(no_pop / sum(no_pop), 2),
+    age_group = factor(age_group, levels = c(
+      '16-21', '22-29', '30-39', '40-49', '50-59', '60-64', '65-69', '70+'))
+)
 ```
 
 ```{r}
-# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by sex.
+# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by sex. The 0-15 age group is excluded as the legal driving age in Victoria is 16 years old.
 sex_compare <- summary_accident |> 
+  filter(age_group != '0-15') |>
   group_by(sex) |> 
   summarise(no_driver = sum(count)) |> 
   left_join(
@@ -436,11 +442,6 @@ sex_compare <- summary_accident |>
   ) |> 
   mutate(percent_driver = round(no_driver / sum(no_driver), 2),
 percent_pop = round(no_pop / sum(no_pop), 2))
-```
-
-```{r}
-write_csv(age_compare, "cleaned_data/age_comparison.csv")
-write_csv(sex_compare, "cleaned_data/sex_comparison.csv")
 ```
 
 ### Comprehensive details of the data
@@ -461,11 +462,86 @@ Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Ha
 Garrett Grolemund, Hadley Wickham (2011). *Dates and Times Made Easy with lubridate.*
 Journal of Statistical Software, 40(3), 1-25. URL <https://www.jstatsoft.org/v40/i03/>
 
+Zhu H (2024). *kableExtra: Construct Complex Table with 'kable' and Pipe Syntax.* doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>
+
 <!-- Task 2 Tab: Writing your blogpost -->
 
 ## Blog post
 
-### What's in this section
+### Why analyse risk factors contributed to road accidents in Victoria?
+
+Sometimes we wonder why our car insurance prices change. Most drivers have experienced variability in their premiums and may have wondered what drives them. One key factor insurers consider when determining premiums is the likelihood of accidents. Understanding the factors that contribute to accident risk, and whether any of them are within our control, makes this a personally relevant and practically useful analysis.
+
+
+### Where does the data come from?
+
+Data used for this analysis is obtained from two sources. The first is the Victorian Road Crash dataset distributed by Victoria's Department of Transport and Planning, which combines information gathered from police reports and hospital records. The second is the 2021 Australian Census dataset obtained from the Australian Bureau of Statistics, which will be used to provide population context to support conclusions drawn from the analysis regarding personal characteristics such as age and sex. Further details of both datasets can be found in the Data Description section.
+
+### What does the data tell us?
+#### Characteristics of the drivers: age and sex
+
+To determine whether higher accident counts from certain age groups or among one sex are simply a reflection of a larger population in those groups, the proportion of drivers involved in accidents is compared against the general Victorian population using the 2021 Australian Census data. If the proportion of drivers in accidents exceeds their share of the population, it suggests that the group is overrepresented in accidents beyond what population size alone would explain.
+
+```{r}
+#| fig-cap: "Number of Drivers Involved in Accidents by Age Group"
+#| label: fig-driver-age
+age_compare |> 
+  ggplot(aes(x = age_group, y = no_driver, fill = age_group)) +
+  geom_text(aes(label = scales::comma(no_driver)), vjust = -0.5, size = 3) +
+  geom_col() +
+  labs(
+    title = 'Number of Drivers Involved in Accidents by Age Group',
+    x = 'Age Group',
+    y = 'Number of Drivers'
+  ) +
+  scale_fill_brewer(palette = 'Set3') +
+  theme_minimal() +
+  theme(legend.position = 'none')
+```
+```{r}
+#| tbl-cap: "Comparison of proportion of drivers involved in accidents against the general population by age group"
+#| label: tbl-percent-age
+age_compare |> 
+  mutate(percent_driver = paste0(percent_driver * 100, '%'),
+         percent_population = paste0(percent_pop * 100, '%')) |> 
+  select(age_group, percent_driver, percent_population) |> 
+  rename(
+    'Age Group' = age_group,
+    '% of Drivers in Accidents' = percent_driver,
+    '% of Population' = percent_population
+  ) |>  
+  kable()
+```
+
+The plot shows that drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. When compared against the population distribution of Victoria, the proportion of drivers involved in accidents from both groups exceeds their share of the general population, suggesting that the higher accident counts are not simply a result of these age groups being more populous.
+
+Additionally, two other age groups also show a higher proportion of accident involvement relative to their population share, namely the 40 to 49 and 16 to 21 groups. This overrepresentation could indicate either riskier driving behaviour or higher driving frequency among these groups. Based on the available data alone, it is not possible to distinguish between these two explanations, which is a limitation of this dataset. However, even if the overrepresentation is driven by higher driving frequency, the likelihood of accident involvement remains elevated regardless, and this limitation does not undermine the overall conclusion.
+
+Therefore, it can be concluded that drivers aged 30 to 39 have the highest risk of accident involvement, followed closely by the 22 to 29 age group.
+
+```{r}
+#| tbl-cap: "Comparison of proportion of drivers involved in accidents against the general population by sex"
+#| label: tbl-percent-sex
+sex_compare |> 
+  mutate(percent_driver = paste0(percent_driver * 100, '%'),
+         percent_population = paste0(percent_pop * 100, '%')) |> 
+  select(-percent_pop, -no_driver, -no_pop) |> 
+  rename(
+    'Sex' = sex,
+    '% of Drivers in Accidents' = percent_driver,
+    '% of Population' = percent_population
+  ) |>  
+  kable()
+```
+
+The table shows that 59% of drivers involved in accidents are male, while males represent only 49% of the general population. This overrepresentation suggests that male drivers are involved in accidents at a higher rate than their population share would predict. As with the age group analysis, the available data does not allow us to determine whether this is due to males driving more frequently or exhibiting riskier driving behaviour, however both factors would contribute to a higher likelihood of accident involvement.
+
+It is also worth noting that individuals who identify as neither male nor female, or whose sex was not recorded, are not included in this analysis, which is a further limitation to consider. Overall, male drivers appear to be overrepresented in road accidents relative to their share of the Victorian population, suggesting that male drivers pose a higher accident risk and may therefore be considered a higher risk group.
+
+
+
+
+
 
 Here is where you should write your blogpost! (Task 2)
 
