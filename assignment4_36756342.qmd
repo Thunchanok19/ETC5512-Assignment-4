@@ -162,7 +162,8 @@ census_data_vic_tidy <- census_vic_G07_long |>
 
 ```{r}
 census_data_vic_tidy <- census_data_vic_tidy |>
-  select(min_age, max_age, sex, count)
+  select(min_age, max_age, sex, count) |> 
+  filter(sex != 'P')
 ```
 
 ```{r}
@@ -170,7 +171,7 @@ census_data_vic_tidy <- census_data_vic_tidy |>
 census_data_vic_tidy <- census_data_vic_tidy |>
   mutate(min_age = as.numeric(min_age),
          max_age = as.numeric(max_age),
-         sex = factor(sex, levels = c('M', 'F','P')))
+         sex = factor(sex, levels = c('M', 'F')))
 ```
 
 ```{r}
@@ -311,6 +312,137 @@ joined_data <- joined_data |>
 write_csv(joined_data, "cleaned_data/road_accident_data_tidy.csv")
 ```
 
+The following steps summarise the data in preparation for further analysis. An important step is the proportional allocation of census population counts to align with the age band brackets used in the accident dataset. A proportional allocation method was applied, analogous to areal weighted interpolation, which assumes that individuals are evenly distributed within each age band and redistributes population counts proportionally based on the ratio of years needed to the total years in the band. As noted by Prener and Revord (2019), this assumption of uniform distribution may not always hold in practice, and results should therefore be interpreted as approximations rather than exact values.
+
+```{r}
+# Create a summary table of individuals involved in the accidents
+summary_accident <- joined_data |> 
+  group_by(AGE_GROUP, SEX) |> 
+  summarise(count = n()) |> 
+  rename(age_group = AGE_GROUP,
+         sex = SEX)
+```
+
+```{r}
+# Create a summary table of population by age group and sex.
+# For age ranges that do not precisely align with the accident data age bands, population counts were proportionally allocated assuming uniform distribution within each census age band.
+summary_census <- bind_rows(
+  # Count the population in the age group of 0 - 15
+  census_data_vic_tidy |>
+    filter(min_age %in% c(0, 5, 10)) |> 
+  group_by(sex) |> 
+  summarise(count = sum(count)) |> 
+  bind_rows(
+    census_data_vic_tidy |> 
+      filter(min_age == 15) |> 
+      mutate(count = round(count * 1/5, 0)) |> 
+      group_by(sex) |> 
+      summarise(count = sum(count))) |> 
+  group_by(sex) |> summarise(count = sum(count)) |>
+    mutate(age_group = '0-15'),
+    # Count the population in the age group of 16 - 21
+  census_data_vic_tidy |>
+    filter(min_age == 15) |> 
+    mutate(count = round(count * 4/5, 0)) |> 
+    bind_rows(
+      census_data_vic_tidy |> 
+        filter(min_age == 20) |> 
+        mutate(count = round(count * 2/5, 0))) |> 
+      group_by(sex) |> 
+      summarise(count = sum(count)) |> 
+    mutate(age_group = '16-21'),
+  # Count the population in the age group of 22 - 29
+  census_data_vic_tidy |> 
+        filter(min_age == 20) |> 
+        mutate(count = round(count * 3/5, 0)) |> 
+    bind_rows(
+      census_data_vic_tidy |> 
+                filter(min_age == 25)) |> 
+        group_by(sex) |> 
+  summarise(count = sum(count)) |>
+    mutate(age_group = '22-29'),
+  # Count the population in the age group of 30 - 39
+    census_data_vic_tidy |> 
+                filter(min_age %in% c(30, 35)) |> 
+        group_by(sex) |> 
+  summarise(count = sum(count)) |>
+    mutate(age_group = '30-39'),
+   # Count the population in the age group of 40 - 49
+    census_data_vic_tidy |> 
+                filter(min_age %in% c(40, 45)) |> 
+        group_by(sex) |> 
+  summarise(count = sum(count)) |>
+    mutate(age_group = '40-49'),
+   # Count the population in the age group of 50 - 59
+    census_data_vic_tidy |> 
+                filter(min_age %in% c(50, 55)) |> 
+        group_by(sex) |> 
+  summarise(count = sum(count)) |>
+    mutate(age_group = '50-59'),
+   # Count the population in the age group of 60 - 64
+    census_data_vic_tidy |> 
+                filter(min_age == 60) |> 
+        group_by(sex) |> 
+  summarise(count = sum(count)) |>
+    mutate(age_group = '60-64'),
+   # Count the population in the age group of 65 - 69
+    census_data_vic_tidy |> 
+                filter(min_age == 65) |> 
+    mutate(count = round(count * 5/10, 0)) |>  
+        group_by(sex) |> 
+    summarise(count = sum(count)) |>
+    mutate(age_group = '65-69'),
+   # Count the population in the age group of over 70
+census_data_vic_tidy |> 
+  filter(min_age == 65) |> 
+  mutate(count = round(count * 5/10, 0)) |> 
+  bind_rows(
+    census_data_vic_tidy |>
+      filter(min_age > 65) |> 
+      group_by(sex) |> 
+      summarise(count = sum(count))
+  ) |>
+  group_by(sex) |>
+  summarise(count = sum(count)) |>
+  mutate(age_group = '70+')
+)
+```
+
+```{r}
+# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by age group.
+age_compare <- summary_accident |> 
+  group_by(age_group) |> 
+  summarise(no_driver = sum(count)) |> 
+  left_join(
+    summary_census |> 
+      group_by(age_group) |> 
+      summarise(no_pop = sum(count)),
+    by = 'age_group'
+  ) |> 
+  mutate(percent_driver = round(no_driver / sum(no_driver), 2),
+percent_pop = round(no_pop / sum(no_pop), 2))
+```
+
+```{r}
+# Create an age comparison table to compare the proportion of drivers involved in accidents against the general population by sex.
+sex_compare <- summary_accident |> 
+  group_by(sex) |> 
+  summarise(no_driver = sum(count)) |> 
+  left_join(
+    summary_census |> 
+      group_by(sex) |> 
+      summarise(no_pop = sum(count)),
+    by = 'sex'
+  ) |> 
+  mutate(percent_driver = round(no_driver / sum(no_driver), 2),
+percent_pop = round(no_pop / sum(no_pop), 2))
+```
+
+```{r}
+write_csv(age_compare, "cleaned_data/age_comparison.csv")
+write_csv(sex_compare, "cleaned_data/sex_comparison.csv")
+```
+
 ### Comprehensive details of the data
 
 The comprehensive details of both datasets are presented in their respective README and data dictionary files.
@@ -319,6 +451,8 @@ The comprehensive details of both datasets are presented in their respective REA
 National Cover (2026, April 13) *5 Factors Affecting Car Insurance Premiums In Australia* retrieved May 29, 2026 from <https://nationalcover.com.au/factors-affecting-car-insurance-premiums/>
 
 Victoria’s Department of Transport and Planning (2025, August 9) *Victoria road crash data* retrieved May 29, 2026 from <https://www.data.gov.au/data/dataset/victoria-road-crash-data>
+
+Prener, C. (2022, May 30) *Areal Weighted Interpolation* retrieved June 4, 2026 from <https://cran.r-project.org/web/packages/areal/vignettes/areal-weighted-interpolation.html>
 
 Australian Bureau of Statistics. (2021). *Census DataPacks* retrieved May 29, 2026, from <https://www.abs.gov.au/census/find-census-data/datapacks>
 
