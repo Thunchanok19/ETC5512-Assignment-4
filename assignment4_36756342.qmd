@@ -28,12 +28,12 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 
 #### Dataset 1: 2021 Victoria Census Data and GeoPackages
 
--   **Detail**: The tables that will be used in this analysis will included data about population age and gender at state level and also LGA level.
--   **Source**: Australian Bureau pf Statistics
+-   **Detail**: The tables that will be used in this analysis will included data about population age and gender at state level.
+-   **Source**: Australian Bureau of Statistics
 -   **Data type**: Census. It aims to capture the entire population, however complete coverage is not always achievable in practice.
 -   **Data license**: Creative Commons Attribution 4.0 International. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
 -   **Last updated date**: 28 June 2022
--   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind.
+-   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind. Furthermore, data is aggregated to protect individual privacy, meaning values are presented in ranges rather than exact figures, which may introduce uncertainty when used for analysis.
 -   **Ethical considerations**: As census data contains information about individuals, re-identification risk must be considered. However, as the data will only be used at an aggregated population level for comparison purposes, this risk is relatively low in this analysis. Moreover, using demographic characteristics such as age and sex to inform insurance premium pricing may raise concerns around fairness and discrimination, and findings should therefore be interpreted and presented with this in mind.
 
 #### Dataset 2: Victoria Road Crash Data
@@ -43,15 +43,16 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 -   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
 -   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
 -   **Last updated date**: 9 August 2025
--   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Findings should therefore be interpreted with this limitation in mind. 
--   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
+-   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Furthermore, certain variables are aggregated to protect individual privacy, which may introduce uncertainty when used for analysis, and some variables may not fully capture the circumstances surrounding each accident. These limitations were taken into consideration when selecting variables for the analysis.
+-   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation and retaining only necessary variables should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
 
 Another limitation arises when comparing both datasets as the age bands do not exactly align. For example, the census data uses an age band of 25-34 years while the road accident dataset splits this into 26-29 and 30-39 years. To address this, proportional allocation was applied by assuming that ages are uniformly distributed within each band, allowing the population count to be approximated for partial age ranges. This assumption introduces some estimation error as the actual age distribution within each band may not be perfectly uniform.
 
 ### Steps to download and process the data
 
-The dataset was downloaded from abs.gov.au and saved in the data folder. Two tables from the census dataset were used: G07 and G01. G07 provides 5 year age brackets which offer more granularity, however it groups everyone aged 65 and over into a single category. G01 provides more detailed age brackets for the older population, specifically 65 to 74, 75 to 84, and 85 and over. Therefore both tables were combined to produce a more complete and detailed age breakdown across all age groups. The LGA boundary GeoPackage was also downloaded from the same source and will be used to visualise accident data geographically by LGA.
-The data was loaded and cleaned using the following codes;
+#### Dataset 1: 2021 Victoria Census Data and GeoPackages
+
+The dataset was downloaded from abs.gov.au and saved in the data folder. Two tables from the census dataset were used: G07 and G01. G07 provides 5 year age brackets which offer more granularity, however it groups everyone aged 65 and over into a single category. G01 provides more detailed age brackets for the older population, specifically 65 to 74, 75 to 84, and 85 and over. Therefore both tables were combined to produce a more complete and detailed age breakdown across all age groups. The LGA boundary GeoPackage was also downloaded from the same source and will be used to visualise accident data geographically by LGA. The data was loaded and cleaned using the following codes;
 
 ```{r}
 library(tidyverse)
@@ -179,10 +180,10 @@ census_data_vic_tidy <- census_data_vic_tidy |>
 write_csv(census_data_vic_tidy, "cleaned_data/census_data_vic_tidy.csv")
 ```
 
-The GeoPackage data was loaded. 
+The GeoPackage data was loaded.
 
 ```{r}
-  #| output: false
+#| output: false
 # Load the dataset
 st_layers(here::here("data/G01_VIC_GDA2020.gpkg"))
 
@@ -199,12 +200,11 @@ vic_lga_G01 <-vic_lga_G01 |>
 ```
 
 #### Dataset 2: Victoria Road Crash Data
-The dataset was downloaded from data.gov.au website and saved in the data folder.
-The data was loaded and cleaned using the following codes;
+
+The dataset was downloaded from data.gov.au website and saved in the data folder. The data was loaded and cleaned using the following codes;
 
 ```{r}
 # Load the dataset
-accident_data <- read_csv("data/accident.csv")
 person_data <- read_csv("data/person.csv")
 location_data <- read_csv("data/node.csv")
 ```
@@ -219,31 +219,16 @@ person_data <- person_data |>
 ```
 
 ```{r}
-# In the location table, only accident_no, LGA_name, and deg_urban_name columns are kept.
+# In the location table, only accident_no and LGA_name columns are kept.
 
 location_data <- location_data |> 
-  select(ACCIDENT_NO, LGA_NAME, DEG_URBAN_NAME)
-```
-
-```{r}
-# In the accident table, only accident_no, accident_date, light_condition, and speed_zone are kept.
-
-accident_data <- accident_data |> 
-  select(ACCIDENT_NO, ACCIDENT_DATE)
+  select(ACCIDENT_NO, LGA_NAME)
 ```
 
 ```{r}
 #| output: false
-# Join the 3 tables together using accident_no as a common column.
+# Join the 2 tables together using accident_no as a common column.
 # Before joining the tables, the validity of the primary key which is the column used to join the tables is tested to ensure there are no duplicate values.
-
-accident_data |> 
-  count(ACCIDENT_NO) |> 
-  filter (n > 1)
-```
-
-```{r}
-#| output: false
 # For the person_data table, it is expected that some accidents may involve multiple vehicles, therefore the same accident_no may appear more than once to account for multiple drivers.
 
 person_data |> 
@@ -259,20 +244,21 @@ location_data |>
   count(ACCIDENT_NO) |> 
   filter (n > 1)
 
-# Upon further inspection, the difference was due to inconsistent recording of deg_urban_name, but the actual locations and LGA names are the same, therefore duplicated rows were removed before joining.
+# Upon further inspection, the duplicates were due to inconsistent recording of the deg_urban_name column, which was not retained in the final dataset. As the actual location and LGA name values were identical across duplicate rows, the duplicates were removed before joining.
+
+location_data |>
+  group_by(ACCIDENT_NO) |>
+  filter(n() > 1) |>
+  summarise(unique_lga = n_distinct(LGA_NAME)) |>
+  filter(unique_lga > 1)
 
 location_data <- location_data |>
   distinct(ACCIDENT_NO, .keep_all = TRUE)
 ```
 
 ```{r}
-# Joining accident_data table with person_data table using right_join to preserve all rows in person_data table.
-
-joined_data <- accident_data |> 
-  right_join(person_data, by = 'ACCIDENT_NO')
-
-# Joining the joined_data table with location_data table using left_join to preserve all rows in the joined_data table.
-joined_data <- joined_data |> 
+# Joining the person_data table with location_data table using left_join to preserve all rows in the person_data table.
+joined_data <- person_data |> 
   left_join(location_data, by = 'ACCIDENT_NO')
 ```
 
@@ -295,14 +281,6 @@ joined_data <- joined_data |>
 ```
 
 ```{r}
-# Accident_date is further aggregated to reduce re-identification risk by extracting only the year and month in which the accident occurred.
-joined_data <- joined_data |> 
-  mutate(ACCIDENT_MONTH = month(ymd(ACCIDENT_DATE), label = TRUE),
-         ACCIDENT_YEAR = year(ymd(ACCIDENT_DATE))) |> 
-  select(-ACCIDENT_DATE)
-```
-
-```{r}
 # Convert the age_group column to a factor and recode the age bands into broader groups to align with the census data age bands for comparison.
 joined_data <- joined_data |>
   mutate(AGE_GROUP = case_when(
@@ -322,16 +300,17 @@ joined_data <- joined_data |>
 ```
 
 ```{r}
-# Convert the speed_zone column to numeric variable.
+# Convert the sex variable to factor variable.
 joined_data <- joined_data |> 
   mutate(SEX = factor(SEX, levels = c('M', 'F')))
 ```
 
 ```{r}
+#| echo: false
 write_csv(joined_data, "cleaned_data/road_accident_data_tidy.csv")
 ```
 
-The following steps summarise the data in preparation for further analysis. An important step is the proportional allocation of census population counts to align with the age band brackets used in the accident dataset. A proportional allocation method was applied, analogous to areal weighted interpolation, which assumes that individuals are evenly distributed within each age band and redistributes population counts proportionally based on the ratio of years needed to the total years in the band. As noted by Prener and Revord (2019), this assumption of uniform distribution may not always hold in practice, and results should therefore be interpreted as approximations rather than exact values.
+The following steps summarise the data in preparation for further analysis. An important step is the proportional allocation of census population counts to align with the age band brackets used in the accident dataset. A proportional allocation method was applied, analogous to areal weighted interpolation, which assumes that individuals are evenly distributed within each age band and redistributes population counts proportionally based on the ratio of years needed to the total years in the band. As noted by Prener, C. (2019), this assumption of uniform distribution may not always hold in practice, and results should therefore be interpreted as approximations rather than exact values.
 
 ```{r}
 # Create a summary table of individuals involved in the accidents
@@ -465,7 +444,7 @@ percent_pop = round(no_pop / sum(no_pop), 2))
 ```{r}
 #| output: false
 # Before joining the geometry data or map boundary data with the accident data, the common column which is LGA_NAME is inspected to detect any inconsistencies in naming.
-joined_data |> 
+location_data |> 
   group_by(LGA_NAME) |> 
   summarise(count = n()) |> 
   full_join(vic_lga_G01, by = 'LGA_NAME', keep = TRUE) |> 
@@ -493,6 +472,13 @@ joined_map_data <- joined_map_data |>
   inner_join(vic_lga_G01, by = 'LGA_NAME')
 ```
 
+```{r}
+#| warning: false
+#| message: false
+#| output: false
+st_write(joined_map_data, "cleaned_data/geom_accident_data.gpkg", delete_dsn = TRUE)
+```
+
 ### Comprehensive details of the data
 
 The comprehensive details of both datasets are presented in their respective README and data dictionary files.
@@ -502,13 +488,17 @@ The comprehensive details of both datasets are presented in their respective REA
 ## Blog post
 
 ### Why analyse risk factors contributed to road accidents in Victoria?
+
 Sometimes we wonder why our car insurance prices change. Most drivers have experienced variability in their premiums and may have wondered what drives them. One key factor insurers consider when determining premiums is the likelihood of accidents. Understanding the factors that contribute to accident risk, and whether any of them are within our control, makes this a personally relevant and practically useful analysis.
 
 ### Where does the data come from?
+
 Data used for this analysis is obtained from two sources. The first is the Victorian Road Crash dataset distributed by Victoria's Department of Transport and Planning, which combines information gathered from police reports and hospital records. The second is the 2021 Australian Census dataset obtained from the Australian Bureau of Statistics, which will be used to provide population context to support conclusions drawn from the analysis regarding personal characteristics such as age and sex. Further details of both datasets can be found in the Data Description section.
 
 ### What does the data tell us?
+
 #### Characteristics of the drivers: age and sex
+
 To determine whether higher accident counts from certain age groups or among one sex are simply a reflection of a larger population in those groups, the proportion of drivers involved in accidents is compared against the general Victorian population using the 2021 Australian Census data. If the proportion of drivers in accidents exceeds their share of the population, it suggests that the group is overrepresented in accidents beyond what population size alone would explain.
 
 ```{r}
@@ -528,6 +518,7 @@ age_compare |>
   theme_minimal() +
   theme(legend.position = 'none')
 ```
+
 ```{r}
 #| echo: false
 #| tbl-cap: "Comparison of proportion of drivers involved in accidents against the general population by age group"
@@ -581,15 +572,18 @@ ggplot() +
            aes(geometry = geom, fill = count),
            color = "white") + 
   labs(
-    title = 'Number of Drivers Involved in Accidents by LGA in Victoria',
-    fill = 'Number of Drivers Involved in Accidents'
+    title = 'Number of Accident Occurrences by LGA in Victoria',
+    fill = 'Accident Count'
   ) +
   theme_bw() +
   theme(legend.position = "bottom")
 ```
+
 ```{r}
 #| echo: false
-joined_data |> 
+#| tbl-cap: "Top 10 LGAs with the Highest Number of Accident Occurrences in Victoria"
+#| label: tbl-top10-LGA
+location_data |> 
   group_by(LGA_NAME) |> 
   summarise(count = n()) |> 
   arrange(desc(count)) |> 
@@ -601,17 +595,18 @@ joined_data |>
   kable()
 ```
 
-From the map, the highest number of accident occurrences is concentrated around Melbourne and surrounding urban areas. This concentration could be attributed to higher traffic volumes in urban areas, which increases the likelihood of accidents, or other location specific factors such as road conditions and infrastructure. However, the available data does not provide enough information to determine the exact cause, which is a limitation to consider when interpreting these findings. Nevertheless, LGAs within and around Melbourne appear to be more prone to road accidents, which has direct implications for insurance premium pricing. Drivers who reside in or frequently travel through these high risk areas may represent a higher risk profile, and location could therefore be a meaningful factor for insurers when determining appropriate premiums for Victorian drivers.
+From the map, the highest number of accident occurrences is concentrated around Melbourne and surrounding urban areas, as indicated by the lighter shading. This concentration could be attributed to higher traffic volumes in urban areas, which increases the likelihood of accidents, or other location specific factors such as road conditions and infrastructure. However, the available data does not provide enough information to determine the exact cause, which is a limitation to consider when interpreting these findings. Nevertheless, LGAs within and around Melbourne appear to be more prone to road accidents, which has direct implications for insurance premium pricing. Drivers who reside in or frequently travel through these high risk areas may represent a higher risk profile, and location could therefore be a meaningful factor for insurers when determining appropriate premiums for Victorian drivers.
 
 ### Conclusions and Implications
 
 While multiple factors contribute to the likelihood of accidents and influence insurance premium pricing, this analysis focused on three key factors: driver characteristics such as age and sex, and the location where accidents occurred.
 
-From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, urban LGAs near Melbourne are more prone to accidents, with Casey recording the highest number of accidents, followed by Melbourne and Hume.
+From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, urban LGAs near Melbourne are more prone to accidents, with Melbourne recording the highest number of accidents, followed by Casey and Geelong.
 
 These findings suggest that younger to middle aged male drivers residing in or frequently travelling through urban areas around Melbourne represent the highest risk profile, which could be used to inform more targeted and accurate insurance premium pricing for Victorian drivers.
 
 ### References
+
 National Cover (2026, April 13) *5 Factors Affecting Car Insurance Premiums In Australia* retrieved May 29, 2026 from <https://nationalcover.com.au/factors-affecting-car-insurance-premiums/>
 
 Victoria’s Department of Transport and Planning (2025, August 9) *Victoria road crash data* retrieved May 29, 2026 from <https://www.data.gov.au/data/dataset/victoria-road-crash-data>
@@ -620,10 +615,11 @@ Prener, C. (2022, May 30) *Areal Weighted Interpolation* retrieved June 4, 2026 
 
 Australian Bureau of Statistics. (2021). *Census DataPacks* retrieved May 29, 2026, from <https://www.abs.gov.au/census/find-census-data/datapacks>
 
-Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). *“Welcome to the tidyverse.” *Journal of Open Source Software\_, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>
+Australian Bureau of Statistics. (2021). *Census GeoPackages* retrieved June 4, 2026, from <https://www.abs.gov.au/census/find-census-data/geopackages?release=2021&geography=VIC&table=G01&gda=GDA2020>
 
-Garrett Grolemund, Hadley Wickham (2011). *Dates and Times Made Easy with lubridate.*
-Journal of Statistical Software, 40(3), 1-25. URL <https://www.jstatsoft.org/v40/i03/>
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). *“Welcome to the tidyverse.”* Journal of Open Source Software\_, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>
+
+Garrett Grolemund, Hadley Wickham (2011). *Dates and Times Made Easy with lubridate.* Journal of Statistical Software, 40(3), 1-25. URL <https://www.jstatsoft.org/v40/i03/>
 
 Zhu H (2024). *kableExtra: Construct Complex Table with 'kable' and Pipe Syntax.* doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>
 
@@ -631,14 +627,59 @@ Müller K (2025). *here: A Simpler Way to Find Your Files.* doi:10.32614/CRAN.pa
 
 Pebesma, E., 2018. *Simple Features for R: Standardized Support for Spatial Vector Data.* The R Journal 10 (1), 439-446, <https://doi.org/10.32614/RJ-2018-009>
 
-
 <!-- Task 3 Tab: Behind the Scenes -  -->
 
 ## Behind the Scenes
 
-### What's in this section
+### Question 5
 
-Here is where you should tell us about your reflection on your analysis (Task 3).
+*Tell us about parts of your data processing or analysis that weren’t “sexy” and wouldn’t typically be included in a blog post. (e.g. Was their any data drudgery or time intensive wrangling? Were there any repetitive tasks or manual tasks? If it was easy, describe what made it easy?)*
 
-Again, these are the details about **your** perspective and the gritty details behind the scenes of your analysis.
+Data processing became particularly challenging when comparing between datasets, especially when the variables used for comparison had different formats or boundaries.
+
+The most time intensive wrangling involved aligning the age group bands between the two datasets. As each dataset used different age band intervals, direct comparison was not possible without first resolving the inconsistency. I spent considerable time exploring appropriate methods to align both datasets, ultimately arriving at the proportional allocation approach, which also required careful implementation in code.
+
+LGA names also came in different formats across the two datasets, requiring manual inspection to identify discrepancies before joining. Some differences were minor, such as inconsistent use of uppercase and lowercase letters, while others involved different naming conventions entirely, such as 'Geelong' in the accident dataset versus 'Greater Geelong' in the GeoPackage data. Each discrepancy had to be identified and corrected manually, which was a repetitive and time consuming process.
+
+Lastly, the census data variable names combined minimum age, maximum age, and sex into a single column, which required separating into individual columns before the data could be used for analysis. This process required manually examining each row to identify the naming pattern and resolve any inconsistencies before the separation could be performed.
+
+### Question 6
+
+*Were there any challenges that you faced in conducting this analysis. These may take the form of data limitations or coding challenges? (e.g. Was there anything in your analysis that you were not anticipating when you started? Did you have to change your intended scope? Did you need to master a new skill? Were there any problems you were proud of solving?)*
+
+-   Building on the proportional allocation discussed in the previous question, I want to acknowledge that figures derived from this method are estimates that carry inherent uncertainty. When used for comparison, these figures may not precisely reflect the true population count within each age group, which should be considered when interpreting any findings that involve the census comparison.
+
+-   The limitations of the available data and the possibility of confounding variables also restricted the conclusions I could draw from the analysis. For example, while I identified certain LGAs as more prone to accidents, external circumstances such as road conditions and traffic volume were not accounted for as this information was not available in the dataset. When these factors are taken into consideration, the conclusions may differ from those presented.
+
+-   Additionally, I initially planned to include external factors such as light condition and speed zone in the analysis. However, upon further consideration I decided to remove these variables due to their inherent limitations. Light condition values may be subjective as they rely on the perception of the individual who recorded the accident, and speed zone only reflects the legal speed limit of the area rather than the actual speed of the drivers at the time of the accident. Including these variables risked producing ambiguous or misleading conclusions, and I therefore excluded them from the final analysis.
+
+### Question 7
+
+*Tell us about any imperfect parts of your work and how you would like to expand or improve this analysis in future? Be clear about any limitations or aspects of your analysis that fell beyond scope.*
+
+In future, I would like to further explore the relationship between driver characteristics and specific LGAs to understand whether drivers in more urbanised areas exhibit different risk profiles compared to those in regional areas. For example, do drivers in urban LGAs tend to be involved in more accidents due to higher traffic density, or are there behavioural differences between urban and regional drivers? To investigate this, a more detailed analysis at the LGA level would be required, along with additional information about individual driving patterns which is not available in the current dataset.
+
+I would also like to incorporate external factors that were not available in this dataset, such as weather conditions at the time of each accident. Melbourne is well known for its highly variable weather, with conditions changing rapidly within a single day, and this could be a meaningful contributor to accident likelihood. However, incorporating this factor would require detailed weather records matched to the time and location of each accident, which falls outside the scope of this analysis and the available data.
+
+### Question 8
+
+*Tell us about how you used AI in your approach to your assignment. (e.g. Was AI consistently reliable? Did you provide AI with additional context? Was there anywhere where you questioned or verified the AI outputs? Was there anywhere we AI helped you learn something new?)*
+
+I would say that I worked in collaboration with AI throughout the data cleaning and wrangling processes. The coding challenges I faced became more manageable with AI's suggestions, which provided a starting point that I then built upon by adding the relevant variables and values to complete each code chunk. AI also provided step by step explanations of each code chunk, which helped me understand what each part of the process was doing.
+
+However, as my analysis evolved and I revised my research questions, variables, and analysis plan along the way, the outputs generated by AI did not always reflect these changes. This meant I had to carefully review each suggestion to ensure it aligned with my current plan rather than an earlier version of the analysis.
+
+Overall, AI helped me learn quite a lot, not only in terms of coding but also in terms of analytical methods. For example, the proportional allocation method was first suggested by AI, but I independently verified it by researching trustworthy sources rather than blindly accepting the suggestion. AI also reviewed the flow and tone of my writing throughout, providing feedback on how a blog post reader would experience the analysis, which was particularly helpful given that blog post writing differs from a typical academic assignment.
+
+### AI Acknowledgement
+
+I used AI to assist with the communication aspects of my assignment and as a supplementary learning tool, mainly for coding. Specifically, AI was used to:
+
+-   Perform grammar and logical checks to ensure my explanations were clearly conveyed and my points came across to the reader as intended.
+
+-   Assist with coding in R, which included providing explanations and examples of how to use certain functions and data wrangling steps, including creating layers in plots and graphs.
+
+AI did not select variables, conduct analysis, or generate any written content. All analytical decisions and final outputs reflect my own work.
+
+Here is the link to all prompts used: <https://claude.ai/share/0f8bc06a-4856-46f9-ad5f-e5d5c8867a34>
 :::
