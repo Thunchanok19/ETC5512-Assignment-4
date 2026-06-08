@@ -33,7 +33,7 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 -   **Data type**: Census. It aims to capture the entire population, however complete coverage is not always achievable in practice.
 -   **Data license**: Creative Commons Attribution 4.0 International. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
 -   **Last updated date**: 28 June 2022
--   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind. Furthermore, data is aggregated to protect individual privacy, meaning values are presented in ranges rather than exact figures, which may introduce uncertainty when used for analysis.
+-   **Data limitation**: Despite being a census, undercounting remains a possibility as not all individuals may have completed the census form. Additionally, as the data represents Victoria's population as at 2021, any changes in population composition after this date will not be reflected, meaning comparisons against more recent accident data should be interpreted with this time gap in mind. Furthermore, data is aggregated to protect individual privacy, meaning values are presented in ranges rather than exact figures, which may introduce uncertainty when used for analysis. Lastly, the age band boundaries are not consistent across all groups, for example the 85 and over category has no upper boundary, meaning it could encompass a much larger and more diverse population than other age bands of fixed intervals, which may limit the granularity of analysis for older age groups.
 -   **Ethical considerations**: As census data contains information about individuals, re-identification risk must be considered. However, as the data will only be used at an aggregated population level for comparison purposes, this risk is relatively low in this analysis. Moreover, using demographic characteristics such as age and sex to inform insurance premium pricing may raise concerns around fairness and discrimination, and findings should therefore be interpreted and presented with this in mind.
 
 #### Dataset 2: Victoria Road Crash Data
@@ -43,7 +43,7 @@ The datasets used in this analysis consist of two sources. The first is the Vict
 -   **Data type**: Sample. This dataset is a sample as it only includes accidents which were recorded or reported.
 -   **Data license**: Creative Commons Attribution 3.0 Australia. Under this licence, the data can be shared, transformed, and built upon as long as appropriate credit is given.
 -   **Last updated date**: 9 August 2025
--   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Furthermore, certain variables are aggregated to protect individual privacy, which may introduce uncertainty when used for analysis, and some variables may not fully capture the circumstances surrounding each accident. These limitations were taken into consideration when selecting variables for the analysis.
+-   **Data limitation**: As this dataset is a sample, it may not fully represent the entire population of road accidents in Victoria, as unreported or unrecorded accidents are excluded. Furthermore, certain variables are aggregated to protect individual privacy, which may introduce uncertainty when used for analysis, and some variables may not fully capture the circumstances surrounding each accident. These limitations were taken into consideration when selecting variables for the analysis. Similarly to the census dataset, the 70 and over age category has no upper boundary, which means it may represent a wider and more diverse group compared to other age bands of fixed intervals, potentially limiting the granularity of analysis for older age groups.
 -   **Ethical considerations**: Joining multiple tables together may increase re-identification risk, as there may be only one accident recorded in a particular LGA at a specific time and date. As the data involves personal information, re-identification risks must be carefully considered and mitigation strategies such as variable aggregation and retaining only necessary variables should be applied. Moreover, as accidents can be traumatic events for the individuals involved, this should be respectfully acknowledged when presenting and interpreting findings.
 
 Another limitation arises when comparing both datasets as the age bands do not exactly align. For example, the census data uses an age band of 25-34 years while the road accident dataset splits this into 26-29 and 30-39 years. To address this, proportional allocation was applied by assuming that ages are uniformly distributed within each band, allowing the population count to be approximated for partial age ranges. This assumption introduces some estimation error as the actual age distribution within each band may not be perfectly uniform.
@@ -306,7 +306,6 @@ joined_data <- joined_data |>
 ```
 
 ```{r}
-#| echo: false
 write_csv(joined_data, "cleaned_data/road_accident_data_tidy.csv")
 ```
 
@@ -647,11 +646,11 @@ Lastly, the census data variable names combined minimum age, maximum age, and se
 
 *Were there any challenges that you faced in conducting this analysis. These may take the form of data limitations or coding challenges? (e.g. Was there anything in your analysis that you were not anticipating when you started? Did you have to change your intended scope? Did you need to master a new skill? Were there any problems you were proud of solving?)*
 
--   Building on the proportional allocation discussed in the previous question, I want to acknowledge that figures derived from this method are estimates that carry inherent uncertainty. When used for comparison, these figures may not precisely reflect the true population count within each age group, which should be considered when interpreting any findings that involve the census comparison.
+Building on the proportional allocation discussed in the previous question, inconsistent age bands were one of the most unexpected challenges I faced. I spent considerable time deciding how to appropriately resolve the inconsistency, and after settling on the proportional allocation method, the next challenge came in the form of a detailed and complex coding process. Ultimately, after resolving the inconsistency, a new limitation emerged where the figures derived from this method are estimates that carry inherent uncertainty and may not precisely reflect the true population count within each age group, which should be kept in mind when interpreting findings that involve the census comparison.
 
--   The limitations of the available data and the possibility of confounding variables also restricted the conclusions I could draw from the analysis. For example, while I identified certain LGAs as more prone to accidents, external circumstances such as road conditions and traffic volume were not accounted for as this information was not available in the dataset. When these factors are taken into consideration, the conclusions may differ from those presented.
+Another limitation I encountered was the possibility of confounding variables, which restricted the conclusions I could draw from the analysis. For example, while I identified certain LGAs as more prone to accidents, external circumstances such as road conditions and traffic volume were not accounted for as this information was not available in the dataset. When these factors are taken into consideration, the conclusions may differ from those presented.
 
--   Additionally, I initially planned to include external factors such as light condition and speed zone in the analysis. However, upon further consideration I decided to remove these variables due to their inherent limitations. Light condition values may be subjective as they rely on the perception of the individual who recorded the accident, and speed zone only reflects the legal speed limit of the area rather than the actual speed of the drivers at the time of the accident. Including these variables risked producing ambiguous or misleading conclusions, and I therefore excluded them from the final analysis.
+Additionally, I initially planned to include external factors such as light condition and speed zone in the analysis. However, upon further consideration I decided to remove these variables due to their inherent limitations. Light condition values may be subjective as they rely on the perception of the individual who recorded the accident, and speed zone only reflects the legal speed limit of the area rather than the actual speed of the drivers at the time of the accident. Including these variables risked producing ambiguous or misleading conclusions, and I therefore excluded them from the final analysis.
 
 ### Question 7
 
@@ -670,6 +669,26 @@ I would say that I worked in collaboration with AI throughout the data cleaning 
 However, as my analysis evolved and I revised my research questions, variables, and analysis plan along the way, the outputs generated by AI did not always reflect these changes. This meant I had to carefully review each suggestion to ensure it aligned with my current plan rather than an earlier version of the analysis.
 
 Overall, AI helped me learn quite a lot, not only in terms of coding but also in terms of analytical methods. For example, the proportional allocation method was first suggested by AI, but I independently verified it by researching trustworthy sources rather than blindly accepting the suggestion. AI also reviewed the flow and tone of my writing throughout, providing feedback on how a blog post reader would experience the analysis, which was particularly helpful given that blog post writing differs from a typical academic assignment.
+
+### Question 9
+
+*Submit 4 earlier versions of your .qmd files to show your iterative process. Reflect on the progress made between each versions by providing a short statement for markers of what you fixed/learnt/improved/changed between each file. Also like to reflect on what changed between your first checklist submission.*
+
+-   Commit 1: Complete Task 1.\
+    This commit contains the first version of the data description section. The section was later revised and refined in subsequent commits.
+
+-   Commit 2: Task 1: Added G07 table and stacked 2 tables together.\
+    In this commit, I incorporated data from the G07 census table into the analysis. Initially, only the G01 dataset was used, but after cleaning the data, I found that the age variable in G01 was too broad. Therefore, I added G07 to obtain more detailed age information and stacked the two tables together.
+
+-   Commit 3: Add another data file, the GeoPacks and create a map.\
+    At this stage, I revised my research question to focus on the locations where accidents occurred. To support this shift, I added the GeoPacks dataset and used it to generate a map.
+
+-   Commit 4: Revised the selected variable in processed dateset.\
+    In this commit, I removed variables such as speed zone and light condition because I no longer planned to analyse them due to their limitations, which reduced their usefulness for the analysis.
+
+Here is the link to my repository. <https://github.com/Thunchanok19/ETC5512-Assignment-4>
+
+Please note: Only the .qmd file on GitHub should be referenced. The data folders were not updated or pushed to the repository due to GitHub’s file size limitations, which prevent uploading .gpkg files. As a result, to avoid further complications when uploading data folders, only the .qmd file was updated throughout the process and reflects the full development history in the GitHub version of the project.
 
 ### AI Acknowledgement
 
