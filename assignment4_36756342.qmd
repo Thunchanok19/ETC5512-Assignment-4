@@ -577,7 +577,6 @@ ggplot() +
   theme_bw() +
   theme(legend.position = "bottom")
 ```
-
 ```{r}
 #| echo: false
 #| tbl-cap: "Top 10 LGAs with the Highest Number of Accident Occurrences in Victoria"
@@ -594,15 +593,35 @@ location_data |>
   kable()
 ```
 
-From the map, the highest number of accident occurrences is concentrated around Melbourne and surrounding urban areas, as indicated by the lighter shading. This concentration could be attributed to higher traffic volumes in urban areas, which increases the likelihood of accidents, or other location specific factors such as road conditions and infrastructure. However, the available data does not provide enough information to determine the exact cause, which is a limitation to consider when interpreting these findings. Nevertheless, LGAs within and around Melbourne appear to be more prone to road accidents, which has direct implications for insurance premium pricing. Drivers who reside in or frequently travel through these high risk areas may represent a higher risk profile, and location could therefore be a meaningful factor for insurers when determining appropriate premiums for Victorian drivers.
+```{r}
+#| cache: false
+#| echo: false
+ggplot() +
+   geom_sf(data = joined_map_data,
+           aes(geometry = geom, fill = count),
+           color = "white") + 
+    geom_sf(data = joined_map_data |> filter(LGA_NAME %in% c("MELBOURNE", "CASEY", "GREATER GEELONG")),
+          aes(geometry = geom),
+          fill = NA, color = "red", linewidth = 0.6) +
+  coord_sf(xlim = c(144, 145.5), ylim = c(-37.4, -38.4)) +
+  labs(
+    title = 'Top 3 LGA in Victoria with the Highest Accident Occurrences',
+    fill = 'Accident Count'
+  ) +
+  theme_bw() +
+  geom_sf_label(data = (joined_map_data |> filter(LGA_NAME %in% c("MELBOURNE", "CASEY", "GREATER GEELONG"))), aes(label = LGA_NAME, geometry = geom), size = 2.6, nudge_x = -0.2) +
+  theme(legend.position = "bottom")
+```
+
+From the maps, the highest number of accident occurrences is concentrated around Melbourne and its surrounding suburbs, as well as larger urban centres and municipalities such as Geelong and Casey, as indicated by the lighter shading. This concentration could be attributed to higher population density in these areas, which results in greater traffic volumes and therefore increases the likelihood of accidents, or other location specific factors such as road conditions and infrastructure. However, the available data does not provide enough information to determine the exact cause, which is a limitation to consider when interpreting these findings. Nevertheless, high density urban LGAs appear to be more prone to road accidents, which has direct implications for insurance premium pricing. Drivers who reside in or frequently travel through these areas may represent a higher risk profile, and location could therefore be a meaningful factor for insurers when determining appropriate premiums for Victorian drivers.
 
 ### Conclusions and Implications
 
 While multiple factors contribute to the likelihood of accidents and influence insurance premium pricing, this analysis focused on three key factors: driver characteristics such as age and sex, and the location where accidents occurred.
 
-From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, urban LGAs near Melbourne are more prone to accidents, with Melbourne recording the highest number of accidents, followed by Casey and Geelong.
+From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, high density urban LGAs are more prone to accidents, with Melbourne recording the highest number of accidents, followed by Casey and Geelong.
 
-These findings suggest that younger to middle aged male drivers residing in or frequently travelling through urban areas around Melbourne represent the highest risk profile, which could be used to inform more targeted and accurate insurance premium pricing for Victorian drivers.
+These findings suggest that younger to middle aged male drivers who reside in or frequently travel through high density urban areas represent the highest risk profile, which could inform more targeted and accurate insurance premium pricing for Victorian drivers.
 
 ### References
 
@@ -615,6 +634,10 @@ Prener, C. (2022, May 30) *Areal Weighted Interpolation* retrieved June 4, 2026 
 Australian Bureau of Statistics. (2021). *Census DataPacks* retrieved May 29, 2026, from <https://www.abs.gov.au/census/find-census-data/datapacks>
 
 Australian Bureau of Statistics. (2021). *Census GeoPackages* retrieved June 4, 2026, from <https://www.abs.gov.au/census/find-census-data/geopackages?release=2021&geography=VIC&table=G01&gda=GDA2020>
+
+Australian Trade and Investment Commission (2026). *About Geelong* retrieved June 9, 2026, from <https://www.studyaustralia.gov.au/ar/life-in-australia/locations-in-australia/victoria-melbourne/geelong>
+
+State Government of Victoria (2026). *Know Your Council – Casey City Council* retrieved June 9, 2026, from <https://www.vic.gov.au/know-your-council-casey-city-council>
 
 Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). *“Welcome to the tidyverse.”* Journal of Open Source Software\_, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>
 
