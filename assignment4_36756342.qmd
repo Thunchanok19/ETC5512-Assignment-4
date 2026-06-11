@@ -272,9 +272,15 @@ joined_data |>
 ```
 
 ```{r}
-# Removed rows where sex is undefined or recorded as U. 
-# Removed rows where age group is recorded as Unknown. 
-# Removed rows where LGA name is missing.
+# Removed rows where sex is recorded as U (undefined) as the analysis focuses on 
+# the difference between male and female drivers, therefore undefined sex records 
+# cannot be meaningfully categorised.
+
+# Removed rows where age group is recorded as Unknown as these records cannot be 
+# assigned to any age group and would not contribute meaningfully to the analysis.
+
+# Removed rows where LGA name is missing as location is required for the 
+# geographic analysis and joining with the GeoPackage data.
 
 joined_data <- joined_data |>
   filter(SEX != 'U') |> 
