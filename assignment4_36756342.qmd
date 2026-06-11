@@ -50,6 +50,8 @@ Another limitation arises when comparing both datasets as the age bands do not e
 
 ### Steps to download and process the data
 
+The datasets used in this analysis can be downloaded from the links provided in the References section.
+
 #### Dataset 1: 2021 Victoria Census Data and GeoPackages
 
 The dataset was downloaded from abs.gov.au and saved in the data folder. Two tables from the census dataset were used: G07 and G01. G07 provides 5 year age brackets which offer more granularity, however it groups everyone aged 65 and over into a single category. G01 provides more detailed age brackets for the older population, specifically 65 to 74, 75 to 84, and 85 and over. Therefore both tables were combined to produce a more complete and detailed age breakdown across all age groups. The LGA boundary GeoPackage was also downloaded from the same source and will be used to visualise accident data geographically by LGA. The data was loaded and cleaned using the following codes;
@@ -103,7 +105,7 @@ census_vic_G01_long <- census_vic_G01_long |>
 ```
 
 ```{r}
-# Filter only rows where the min_age is over than 60.
+# Filter only rows where the min_age is equal to or over than 65.
 census_vic_G01_long <- census_vic_G01_long |>
   filter(min_age >= 65)
 ```
@@ -150,7 +152,7 @@ census_vic_G07_long <- census_vic_G07_long |>
 ```
 
 ```{r}
-# Filter only rows where the min_age is less than 60.
+# Filter only rows where the min_age is equal to or less than 60.
 census_vic_G07_long <- census_vic_G07_long |>
   filter(min_age <= 60)
 ```
@@ -169,7 +171,7 @@ census_data_vic_tidy <- census_data_vic_tidy |>
 ```
 
 ```{r}
-# Convert min_age and max_age columns to numeric variables.
+# Convert min_age and max_age columns to numeric variables and sex to a factor variable.
 census_data_vic_tidy <- census_data_vic_tidy |>
   mutate(min_age = as.numeric(min_age),
          max_age = as.numeric(max_age),
@@ -609,7 +611,7 @@ ggplot() +
     fill = 'Accident Count'
   ) +
   theme_bw() +
-  geom_sf_label(data = (joined_map_data |> filter(LGA_NAME %in% c("MELBOURNE", "CASEY", "GREATER GEELONG"))), aes(label = LGA_NAME, geometry = geom), size = 2.6, nudge_x = -0.2) +
+  geom_sf_label(data = (joined_map_data |> filter(LGA_NAME %in% c("MELBOURNE", "CASEY", "GREATER GEELONG"))) , aes(label = LGA_NAME, geometry = geom), size = 2.6, nudge_x = -0.2) +
   theme(legend.position = "bottom")
 ```
 
@@ -619,9 +621,9 @@ From the maps, the highest number of accident occurrences is concentrated around
 
 While multiple factors contribute to the likelihood of accidents and influence insurance premium pricing, this analysis focused on three key factors: driver characteristics such as age and sex, and the location where accidents occurred.
 
-From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, high density urban LGAs are more prone to accidents, with Melbourne recording the highest number of accidents, followed by Casey and Geelong.
+From the findings, drivers aged 30 to 39 have the highest number of accident involvements, followed closely by the 22 to 29 age group. Male drivers are also overrepresented, accounting for 59% of all drivers involved in accidents despite representing only 49% of the general population. Lastly, high density urban LGAs and larger urban centres or municipalities are more prone to accidents, with Melbourne recording the highest number of accidents, followed by Casey and Geelong.
 
-These findings suggest that younger to middle aged male drivers who reside in or frequently travel through high density urban areas represent the highest risk profile, which could inform more targeted and accurate insurance premium pricing for Victorian drivers.
+These findings suggest that younger to middle aged male drivers who reside in or frequently travel through high density urban or municipality areas represent the highest risk profile, which could inform more targeted and accurate insurance premium pricing for Victorian drivers.
 
 ### References
 
@@ -708,6 +710,8 @@ Overall, AI helped me learn quite a lot, not only in terms of coding but also in
 
 -   Commit 4: Revised the selected variable in processed dateset.\
     In this commit, I removed variables such as speed zone and light condition because I no longer planned to analyse them due to their limitations, which reduced their usefulness for the analysis.
+    
+Compared to my initial proposal, the scope of this analysis evolved considerably. The insurance framing was incorporated following consultation feedback, the census data was added to provide population context that was not originally planned, and certain variables such as light condition and speed zone were removed after further consideration of their limitations.
 
 Here is the link to my repository. <https://github.com/Thunchanok19/ETC5512-Assignment-4>
 
