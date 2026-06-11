@@ -1,0 +1,16 @@
+Variable,Description,Type,Other information
+accident_no,Unique identifier for each accident event.,Character,Serves as the primary key used to join tables together.
+sex,Sex of the drivers involved in the accidents.,Factor,"Represents the sex of the drivers. The categories are:
+- M (Male)
+- F (Female)"
+age_group,Age group of the drivers involved in the accidents.,Factor,"Represents the recoded age groups of the drivers. The categories are:
+- 0-15 
+- 16-21 
+- 22-29 
+- 30-49 
+- 50-59 
+- 60-69 
+- 70+
+The unit is years.
+"
+lga_name,Name of the local government area where the accident occurred.,Character,Represents the LGA where the accident occurred.

@@ -1,0 +1,7 @@
+Variable,Description,Type,Other information
+min_age,Minimum age of the population in the bracket,Numeric,Represents the minimum age of the population within each age bracket. The unit is years.
+max_age,Maximum age of the population in the bracket,Numeric,Represents the maximum age of the population within each age bracket. The unit is years.
+sex,Sex of the population in the bracket,Factor,"Represents the sex of the population within each bracket. The categories are: 
+- M (Male)
+- F (Female)"
+count,Total number of population within the bracket,Factor,Represents the count of population within each bracket. The unit is number of persons.
